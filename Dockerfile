@@ -1,16 +1,36 @@
-FROM python:slim
+FROM python:3.12-slim
 
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-RUN pip install gunicorn pymysql cryptography
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=manage.py
 
-COPY app app
-COPY migrations migrations
-COPY microblog.py config.py boot.sh ./
-RUN chmod a+x boot.sh
+# Set work directory
+WORKDIR /app
 
-ENV FLASK_APP microblog.py
-RUN flask translate compile
+# Install system dependencies, including git
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        curl \
+        ffmpeg \
+        git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p app/static/uploads app/static/spectrograms logs
+
+# Expose port
 EXPOSE 5000
-ENTRYPOINT ["./boot.sh"]
+
+# Default command
+CMD ["python", "manage.py"]

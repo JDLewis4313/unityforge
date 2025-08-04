@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Scripture Search Results</h2>
+                <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Reading
+                </a>
+            </div>
+
+            {% if query %}
+            <div class="alert alert-info">
+                <strong>Search query:</strong> "{{ query }}"
+                {% if results %}
+                    <br><small>Found {{ results|length }} result(s)</small>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Search Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('logos.search_scripture') }}" class="d-flex">
+                        <input type="text" name="q" class="form-control me-2" 
+                               placeholder="Search for verses..." 
+                               value="{{ query or '' }}"
+                               autofocus>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </form>
+                    <small class="text-muted mt-2 d-block">
+                        Try searching for keywords, themes, or specific references like "John 3:16" or "love"
+                    </small>
+                </div>
+            </div>
+
+            <!-- Results -->
+            {% if results %}
+                {% for verse in results %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title">
+                                    {% if verse.reference %}
+                                        {{ verse.reference }}
+                                    {% elif verse.book_name and verse.chapter and verse.verse %}
+                                        {{ verse.book_name }} {{ verse.chapter }}:{{ verse.verse }}
+                                    {% endif %}
+                                </h5>
+                                <p class="card-text">
+                                    {% if verse.text %}
+                                        {{ verse.text }}
+                                    {% else %}
+                                        {{ verse.content or verse.body }}
+                                    {% endif %}
+                                </p>
+                                {% if verse.translation or verse.translation_id %}
+                                <small class="text-muted">
+                                    {{ verse.translation or verse.translation_id }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            <div class="ms-3">
+                                <div class="btn-group-vertical" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                            onclick="shareVerse('{{ verse.reference or (verse.book_name + ' ' + verse.chapter|string + ':' + verse.verse|string) }}', '{{ verse.text or verse.content }}')">
+                                        <i class="fas fa-share"></i>
+                                    </button>
+                                    <a href="{{ url_for('logos.create_journal_entry') }}?reference={{ verse.reference or (verse.book_name + ' ' + verse.chapter|string + ':' + verse.verse|string) }}" 
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% elif query %}
+                <div class="alert alert-warning">
+                    <h5>No results found</h5>
+                    <p>We couldn't find any verses matching "{{ query }}". Try:</p>
+                    <ul>
+                        <li>Different keywords or phrases</li>
+                        <li>Specific book and chapter references</li>
+                        <li>Common biblical themes like "love", "hope", "faith"</li>
+                    </ul>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary">
+                    <h5>Search Scripture</h5>
+                    <p>Enter keywords, themes, or specific references to find verses.</p>
+                    <p><strong>Examples:</strong></p>
+                    <ul>
+                        <li>"John 3:16" - specific verse</li>
+                        <li>"love" - verses about love</li>
+                        <li>"Psalm 23" - entire chapter</li>
+                        <li>"faith hope love" - verses containing these words</li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function shareVerse(reference, text) {
+    // Simple sharing functionality
+    const shareText = `${reference}\n\n"${text}"`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: reference,
+            text: shareText
+        }).catch(console.error);
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(shareText).then(() => {
+            // Show temporary success message
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-outline-primary');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-primary');
+            }, 2000);
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    }
+}
+</script>
+{% endblock %}

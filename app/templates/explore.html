@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-compass"></i> 
+                {% if current_filter == 'scripture' %}
+                    Scripture Posts
+                {% elif current_filter == 'audio' %}
+                    Audio Posts
+                {% elif current_filter == 'journal' %}
+                    Journal Posts
+                {% elif current_filter == 'suggestions' %}
+                    Suggestions
+                {% else %}
+                    Explore All Posts
+                {% endif %}
+            </h2>
+        </div>
+
+        <!-- Filter Tabs -->
+        <ul class="nav nav-pills mb-4" id="filter-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {{ 'active' if current_filter == 'all' else '' }}" 
+                   href="{{ url_for('main.explore', filter='all') }}">
+                    <i class="bi bi-grid"></i> All
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {{ 'active' if current_filter == 'scripture' else '' }}" 
+                   href="{{ url_for('main.explore', filter='scripture') }}">
+                    <i class="bi bi-book"></i> Scripture
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {{ 'active' if current_filter == 'audio' else '' }}" 
+                   href="{{ url_for('main.explore', filter='audio') }}">
+                    <i class="bi bi-music-note"></i> Audio
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {{ 'active' if current_filter == 'journal' else '' }}" 
+                   href="{{ url_for('main.explore', filter='journal') }}">
+                    <i class="bi bi-journal-text"></i> Journal
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {{ 'active' if current_filter == 'suggestions' else '' }}" 
+                   href="{{ url_for('main.explore', filter='suggestions') }}">
+                    <i class="bi bi-lightbulb"></i> Suggestions
+                </a>
+            </li>
+        </ul>
+
+        <!-- Posts -->
+        {% if posts %}
+            {% for post in posts %}
+                {% include '_post.html' %}
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No posts found</h4>
+                <p class="text-muted">
+                    {% if current_filter == 'all' %}
+                        No posts have been created yet.
+                    {% else %}
+                        No {{ current_filter }} posts found. Try a different filter.
+                    {% endif %}
+                </p>
+                {% if current_filter != 'all' %}
+                <a href="{{ url_for('main.explore', filter='all') }}" class="btn btn-primary">
+                    View All Posts
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if prev_url or next_url %}
+        <nav aria-label="Posts pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if prev_url %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ prev_url }}">
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </a>
+                </li>
+                {% endif %}
+                {% if next_url %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ next_url }}">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Quick Stats -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Community Overview</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h5 class="text-primary mb-0">{{ posts|length if posts else 0 }}</h5>
+                            <small class="text-muted">Posts Today</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h5 class="text-success mb-0">Active</h5>
+                        <small class="text-muted">Community</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Featured Content -->
+        {% if current_user.is_authenticated %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-star"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-book"></i> Read Scripture
+                    </a>
+                    <a href="{{ url_for('soundlab.upload_page') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-upload"></i> Upload Audio
+                    </a>
+                    <a href="{{ url_for('logos.create_journal_entry') }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-plus-circle"></i> New Journal Entry
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Trending Topics -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-trending-up"></i> Popular Content Types</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('main.explore', filter='scripture') }}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-book me-2 text-primary"></i>Scripture</span>
+                        <span class="badge bg-primary rounded-pill">📖</span>
+                    </a>
+                    <a href="{{ url_for('main.explore', filter='audio') }}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-music-note me-2 text-success"></i>Audio</span>
+                        <span class="badge bg-success rounded-pill">🎵</span>
+                    </a>
+                    <a href="{{ url_for('main.explore', filter='journal') }}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-journal-text me-2 text-info"></i>Journal</span>
+                        <span class="badge bg-info rounded-pill">✍️</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

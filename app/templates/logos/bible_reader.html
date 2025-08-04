@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Bible Navigation Sidebar -->
+        <div class="col-md-3">
+            <div class="card sticky-top">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-book"></i> Bible Books</h6>
+                </div>
+                <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Old Testament -->
+                    <h6 class="text-muted mt-2">Old Testament</h6>
+                    <div class="row">
+                        {% for book_name, chapters in bible_books.items() %}
+                            {% if loop.index <= 39 %}
+                            <div class="col-12 mb-1">
+                                <a href="{{ url_for('logos.bible_reader', book=book_name) }}" 
+                                   class="btn btn-sm w-100 text-start {{ 'btn-primary' if book_name == book else 'btn-outline-secondary' }}">
+                                    {{ book_name }}
+                                    <small class="text-muted">({{ chapters }})</small>
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- New Testament -->
+                    <h6 class="text-muted mt-3">New Testament</h6>
+                    <div class="row">
+                        {% for book_name, chapters in bible_books.items() %}
+                            {% if loop.index > 39 %}
+                            <div class="col-12 mb-1">
+                                <a href="{{ url_for('logos.bible_reader', book=book_name) }}" 
+                                   class="btn btn-sm w-100 text-start {{ 'btn-primary' if book_name == book else 'btn-outline-secondary' }}">
+                                    {{ book_name }}
+                                    <small class="text-muted">({{ chapters }})</small>
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Bible Reading Area -->
+        <div class="col-md-9">
+            <!-- Chapter Navigation -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="mb-0">
+                                <i class="bi bi-bookmark-check text-primary me-2"></i>
+                                {{ book }} {{ chapter }}
+                            </h4>
+                            {% if chapter_content %}
+                            <small class="text-muted">{{ chapter_content.translation }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Chapter Navigation -->
+                            <div class="d-flex justify-content-end align-items-center">
+                                <!-- Previous Chapter -->
+                                {% if chapter > 1 %}
+                                <a href="{{ url_for('logos.bible_reader', book=book, chapter=chapter-1) }}" 
+                                   class="btn btn-outline-primary me-2">
+                                    <i class="bi bi-chevron-left"></i> Chapter {{ chapter-1 }}
+                                </a>
+                                {% endif %}
+                                
+                                <!-- Chapter Selector -->
+                                <select class="form-select me-2" style="width: auto;" 
+                                        onchange="window.location.href='{{ url_for('logos.bible_reader', book=book) }}/' + this.value">
+                                    {% for i in range(1, bible_books[book] + 1) %}
+                                    <option value="{{ i }}" {{ 'selected' if i == chapter else '' }}>
+                                        Chapter {{ i }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                
+                                <!-- Next Chapter -->
+                                {% if chapter < bible_books[book] %}
+                                <a href="{{ url_for('logos.bible_reader', book=book, chapter=chapter+1) }}" 
+                                   class="btn btn-outline-primary">
+                                    Chapter {{ chapter+1 }} <i class="bi bi-chevron-right"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bible Text -->
+            {% if chapter_content %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="bible-text" style="font-family: 'Georgia', serif; line-height: 1.8; font-size: 1.1rem;">
+                        {% if chapter_content.verses %}
+                            <!-- Verse by verse display -->
+                            {% for verse in chapter_content.verses %}
+                            <p class="verse mb-3">
+                                <sup class="verse-number text-primary fw-bold me-2">{{ verse.verse }}</sup>
+                                <span class="verse-text">{{ verse.text }}</span>
+                            </p>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Full text display -->
+                            <div class="chapter-text">
+                                {{ chapter_content.text | replace('\n', '<br>') | safe }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ url_for('logos.create_journal_entry') }}?reference={{ book }} {{ chapter }}" 
+                               class="btn btn-primary">
+                                <i class="bi bi-journal-plus me-2"></i>Journal About This
+                            </a>
+                            <a href="{{ url_for('logos.read_scripture') }}?book={{ book }}&chapter={{ chapter }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-star me-2"></i>Make Daily Scripture
+                            </a>
+                            <button class="btn btn-outline-info" onclick="copyChapter()">
+                                <i class="bi bi-clipboard me-2"></i>Copy Text
+                            </button>
+                            <a href="{{ url_for('logos.bible_search') }}" class="btn btn-outline-success">
+                                <i class="bi bi-search me-2"></i>Search Bible
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <h5>Unable to load chapter content</h5>
+                <p>Please check your internet connection and try again.</p>
+                <a href="{{ url_for('logos.bible_reader') }}" class="btn btn-primary">
+                    Go to Genesis 1
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function copyChapter() {
+    const text = document.querySelector('.bible-text').innerText;
+    navigator.clipboard.writeText(`{{ book }} {{ chapter }}\n\n${text}`).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-2"></i>Copied!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-info');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+
+<style>
+.verse:hover {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 0 -10px;
+}
+
+.verse-number {
+    font-size: 0.8rem;
+    vertical-align: super;
+}
+
+.bible-text {
+    max-width: none;
+}
+
+@media (max-width: 768px) {
+    .col-md-3 {
+        order: 2;
+        margin-top: 20px;
+    }
+    .col-md-9 {
+        order: 1;
+    }
+}
+</style>
+{% endblock %}

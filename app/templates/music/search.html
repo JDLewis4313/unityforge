@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-search"></i> Search Gospel Music</h2>
+                <a href="{{ url_for('music.playlists') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-music-note-list"></i> My Playlists
+                </a>
+            </div>
+
+            <!-- Search Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('music.search') }}">
+                        <div class="input-group">
+                            <input type="text" name="q" value="{{ query or '' }}" 
+                                   class="form-control form-control-lg" 
+                                   placeholder="Search for gospel songs, artists, albums...">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                    <small class="text-muted mt-2 d-block">
+                        Try searching for "gospel", "praise", "worship", or specific artists
+                    </small>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            {% if query %}
+                {% if tracks %}
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Search Results ({{ tracks|length }})</h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="selectAll()">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectNone()">
+                                Select None
+                            </button>
+                        </div>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for t in tracks %}
+                        <div class="list-group-item">
+                            <div class="row align-items-center">
+                                <div class="col-1">
+                                    <input type="checkbox" name="uris" value="{{ t.uri }}" class="form-check-input track-checkbox">
+                                </div>
+                                <div class="col-2">
+                                    {% if t.album and t.album.images %}
+                                    <img src="{{ t.album.images[-1].url }}" class="img-fluid rounded" style="max-height: 60px;">
+                                    {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 60px; width: 60px;">
+                                        <i class="bi bi-music-note text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <h6 class="mb-1">{{ t.name }}</h6>
+                                    <p class="mb-1 text-muted">
+                                        {% if t.artists %}
+                                            {{ t.artists|map(attribute='name')|join(', ') }}
+                                        {% endif %}
+                                        {% if t.album and t.album.name %}
+                                            • {{ t.album.name }}
+                                        {% endif %}
+                                    </p>
+                                    {% if t.duration_ms %}
+                                    <small class="text-muted">
+                                        {{ (t.duration_ms / 60000)|round(1) }} min
+                                        {% if t.popularity %}
+                                        • Popularity: {{ t.popularity }}%
+                                        {% endif %}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-3 text-end">
+                                    {% if t.preview_url %}
+                                    <audio controls class="mb-2" style="width: 200px; height: 30px;">
+                                        <source src="{{ t.preview_url }}" type="audio/mpeg">
+                                    </audio>
+                                    {% else %}
+                                    <small class="text-muted">No preview available</small>
+                                    {% endif %}
+                                    {% if t.external_urls and t.external_urls.spotify %}
+                                    <br>
+                                    <a href="{{ t.external_urls.spotify }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-spotify"></i> Open in Spotify
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Add to Playlist Form -->
+                    <div class="card-footer">
+                        <form method="post" action="#" id="addToPlaylistForm">
+                            <div class="row align-items-end">
+                                <div class="col-md-8">
+                                    <label class="form-label">Add selected tracks to playlist:</label>
+                                    <select class="form-select" id="playlistSelect" name="playlist_id">
+                                        <option value="">Select a playlist...</option>
+                                        <!-- This would need to be populated with user's playlists -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="btn btn-success w-100" onclick="addToPlaylist()">
+                                        <i class="bi bi-plus-circle"></i> Add to Playlist
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <h5><i class="bi bi-exclamation-triangle"></i> No Results Found</h5>
+                    <p class="mb-0">
+                        No tracks found for "{{ query }}". 
+                        Try different keywords or check the spelling.
+                    </p>
+                </div>
+                {% endif %}
+            {% else %}
+            <!-- Popular Gospel Suggestions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Popular Gospel Artists</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Try searching for these popular gospel artists:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('music.search', q='Kirk Franklin') }}" class="btn btn-outline-primary btn-sm">Kirk Franklin</a>
+                        <a href="{{ url_for('music.search', q='Tasha Cobbs Leonard') }}" class="btn btn-outline-primary btn-sm">Tasha Cobbs Leonard</a>
+                        <a href="{{ url_for('music.search', q='Hillsong Worship') }}" class="btn btn-outline-primary btn-sm">Hillsong Worship</a>
+                        <a href="{{ url_for('music.search', q='Elevation Worship') }}" class="btn btn-outline-primary btn-sm">Elevation Worship</a>
+                        <a href="{{ url_for('music.search', q='Maverick City Music') }}" class="btn btn-outline-primary btn-sm">Maverick City Music</a>
+                        <a href="{{ url_for('music.search', q='Chris Tomlin') }}" class="btn btn-outline-primary btn-sm">Chris Tomlin</a>
+                        <a href="{{ url_for('music.search', q='Bethel Music') }}" class="btn btn-outline-primary btn-sm">Bethel Music</a>
+                        <a href="{{ url_for('music.search', q='CeCe Winans') }}" class="btn btn-outline-primary btn-sm">CeCe Winans</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.track-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+}
+
+function selectNone() {
+    const checkboxes = document.querySelectorAll('.track-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+}
+
+function addToPlaylist() {
+    const selectedTracks = document.querySelectorAll('.track-checkbox:checked');
+    const playlistId = document.getElementById('playlistSelect').value;
+    
+    if (selectedTracks.length === 0) {
+        alert('Please select at least one track.');
+        return false;
+    }
+    
+    if (!playlistId) {
+        alert('Please select a playlist.');
+        return false;
+    }
+    
+    // Update form action to point to the correct playlist
+    const form = document.getElementById('addToPlaylistForm');
+    form.action = `/music/playlists/${playlistId}/add`;
+    
+    return true;
+}
+
+// Improve audio player UX
+document.addEventListener('DOMContentLoaded', function() {
+    const audioElements = document.querySelectorAll('audio');
+    
+    audioElements.forEach(audio => {
+        audio.volume = 0.5; // Start at 50% volume
+        
+        // Pause other audio when starting a new one
+        audio.addEventListener('play', function() {
+            audioElements.forEach(otherAudio => {
+                if (otherAudio !== audio) {
+                    otherAudio.pause();
+                }
+            });
+        });
+    });
+    
+    // Load user's playlists for the dropdown (this would need an API call)
+    // For now, we'll redirect to playlists page to add tracks
+    const addButton = document.querySelector('button[onclick="addToPlaylist()"]');
+    if (addButton) {
+        addButton.onclick = function() {
+            const selectedTracks = document.querySelectorAll('.track-checkbox:checked');
+            if (selectedTracks.length === 0) {
+                alert('Please select at least one track first.');
+                return false;
+            }
+            
+            // For now, just show an alert. In a full implementation, 
+            // you'd want to implement a playlist selector modal or redirect
+            alert('This feature needs playlist integration. Please go to your playlists page to add tracks.');
+            return false;
+        };
+    }
+});
+</script>
+{% endblock %}

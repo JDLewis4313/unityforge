@@ -8,11 +8,11 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
+from flask_wtf.csrf import CSRFProtect  # ADD THIS LINE
 from elasticsearch import Elasticsearch
 from redis import Redis
 import rq
 from config import Config
-
 
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
@@ -26,11 +26,17 @@ login.login_message = _l('Please log in to access this page.')
 mail = Mail()
 moment = Moment()
 babel = Babel()
-
+csrf = CSRFProtect()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+    app.config['SPECTROGRAM_FOLDER'] = os.path.join(app.root_path, 'static', 'spectrograms')
+
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['SPECTROGRAM_FOLDER'], exist_ok=True)
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -38,10 +44,18 @@ def create_app(config_class=Config):
     mail.init_app(app)
     moment.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
+    csrf.init_app(app)
+    
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
+
+    
+
+   
+   
+    
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -57,6 +71,16 @@ def create_app(config_class=Config):
 
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    # Add after existing blueprint registrations
+    from app.logos import bp as logos_bp
+    app.register_blueprint(logos_bp, url_prefix='/logos')
+
+    from app.soundlab import bp as soundlab_bp
+    app.register_blueprint(soundlab_bp, url_prefix='/soundlab')
+
+    from app.music import bp as music_bp
+    app.register_blueprint(music_bp)
 
     if not app.debug and not app.testing:
         if app.config['MAIL_SERVER']:

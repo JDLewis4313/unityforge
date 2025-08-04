@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Welcome Header -->
+        <div class="card mb-4">
+            <div class="card-body text-center bg-primary text-white rounded">
+                <h3><i class="bi bi-speedometer2"></i> Welcome back, {{ current_user.username }}!</h3>
+                <p class="mb-0">Here's what's happening in your SignalSage community</p>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-chat-square-text display-4 text-primary"></i>
+                        <h4 class="mt-2">{{ user_stats.total_posts }}</h4>
+                        <small class="text-muted">Total Posts</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-journal-text display-4 text-success"></i>
+                        <h4 class="mt-2">{{ user_stats.journal_entries }}</h4>
+                        <small class="text-muted">Journal Entries</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-music-note display-4 text-warning"></i>
+                        <h4 class="mt-2">{{ user_stats.audio_uploads }}</h4>
+                        <small class="text-muted">Audio Posts</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-book display-4 text-info"></i>
+                        <h4 class="mt-2">{{ user_stats.scripture_posts }}</h4>
+                        <small class="text-muted">Scripture Posts</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Posts</h5>
+                <a href="{{ url_for('main.user', username=current_user.username) }}" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_posts %}
+                    {% for post in recent_posts %}
+                    <div class="d-flex align-items-start mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+                        <div class="me-3">
+                            {% if post.media_type == 'scripture' %}
+                                <i class="bi bi-book text-primary"></i>
+                            {% elif post.media_type == 'audio' %}
+                                <i class="bi bi-music-note text-success"></i>
+                            {% elif post.media_type == 'journal' %}
+                                <i class="bi bi-journal-text text-info"></i>
+                            {% else %}
+                                <i class="bi bi-chat-square-text text-secondary"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            {% if post.title %}
+                            <h6 class="mb-1">{{ post.title }}</h6>
+                            {% endif %}
+                            <p class="mb-1">{{ post.body[:100] }}{% if post.body|length > 100 %}...{% endif %}</p>
+                            <small class="text-muted">{{ moment(post.timestamp).fromNow() }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-3 text-muted"></i>
+                        <p class="text-muted mt-2">No posts yet. Start sharing!</p>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary">Create Your First Post</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Journal Entries -->
+        {% if recent_journals %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Recent Journal Entries</h5>
+                <a href="{{ url_for('logos.journal_list') }}" class="btn btn-sm btn-outline-secondary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% for entry in recent_journals %}
+                <div class="d-flex align-items-start mb-3 {% if not loop.last %}border-bottom pb-3{% endif %}">
+                    <div class="me-3">
+                        <i class="bi bi-pen text-info"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ entry.title }}</h6>
+                        <p class="mb-1 text-muted">{{ entry.content[:80] }}{% if entry.content|length > 80 %}...{% endif %}</p>
+                        <small class="text-muted">{{ moment(entry.created_at).fromNow() }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Today's Scripture -->
+        {% if daily_scripture %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-bookmark-star text-primary"></i> Today's Scripture</h6>
+            </div>
+            <div class="card-body">
+                <h6 class="text-primary">{{ daily_scripture.reference }}</h6>
+                <p class="card-text" style="font-style: italic;">
+                    {% if daily_scripture.text|length > 120 %}
+                        {{ daily_scripture.text[:120] }}...
+                    {% else %}
+                        {{ daily_scripture.text }}
+                    {% endif %}
+                </p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-primary btn-sm">
+                        Read Full Passage
+                    </a>
+                    <a href="{{ url_for('logos.create_journal_entry') }}?scripture_id={{ daily_scripture.id }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        Journal About This
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-circle"></i> New Post
+                    </a>
+                    <a href="{{ url_for('logos.create_journal_entry') }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-journal-plus"></i> New Journal Entry
+                    </a>
+                    <a href="{{ url_for('soundlab.upload_page') }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-upload"></i> Upload Audio
+                    </a>
+                    <a href="{{ url_for('logos.search_scripture') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-search"></i> Search Scripture
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Stats -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-people"></i> Your Network</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-primary mb-0">{{ user_stats.followers }}</h4>
+                        <small class="text-muted">Followers</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-0">{{ user_stats.following }}</h4>
+                        <small class="text-muted">Following</small>
+                    </div>
+                </div>
+                <div class="d-grid mt-3">
+                    <a href="{{ url_for('main.explore') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-compass"></i> Discover People
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips & Help -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-question-circle"></i> Getting Started</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <small class="text-muted">
+                            📖 Start your day with <a href="{{ url_for('logos.read_scripture') }}">scripture reading</a>
+                        </small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <small class="text-muted">
+                            ✍️ Keep a spiritual <a href="{{ url_for('logos.journal_list') }}">journal</a>
+                        </small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <small class="text-muted">
+                            🎵 Share your <a href="{{ url_for('soundlab.upload_page') }}">audio content</a>
+                        </small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <small class="text-muted">
+                            🤝 Connect with the <a href="{{ url_for('main.explore') }}">community</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

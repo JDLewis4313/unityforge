@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import 'bootstrap_wtf.html' as wtf %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-journal-plus"></i> New Journal Entry</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <i class="bi bi-lock"></i> Your journal entries are private and only visible to you.
+                </p>
+                {{ wtf.quick_form(form) }}
+            </div>
+        </div>
+        
+        <div class="mt-3 text-center">
+            <a href="{{ url_for('logos.journal_list') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Journal
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

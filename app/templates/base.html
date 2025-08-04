@@ -3,179 +3,302 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% if title %}
-    <title>{{ title }} - Microblog</title>
-    {% else %}
-    <title>{{ _('Welcome to Microblog') }}</title>
-    {% endif %}
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-        crossorigin="anonymous">
+    <title>{{ title or _('Welcome to SignalSage') }}</title>
+    
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <!-- Custom styles for SignalSage -->
+    <style>
+      .scripture-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+      }
+      .scripture-banner .btn-link {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+      }
+      .scripture-banner .btn-link:hover {
+        color: white;
+      }
+      .user_popup:hover {
+        text-decoration: underline !important;
+      }
+      .post-actions .btn-group {
+        gap: 0.25rem;
+      }
+      .audio-player audio {
+        height: 40px;
+      }
+      .scripture-quote {
+        position: relative;
+      }
+      .scripture-quote::before {
+        content: '"';
+        font-size: 3rem;
+        position: absolute;
+        left: -15px;
+        top: -10px;
+        color: #0d6efd;
+        opacity: 0.3;
+      }
+      .navbar-brand {
+        font-weight: bold;
+      }
+      .card {
+        transition: box-shadow 0.2s ease-in-out;
+      }
+      .card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+    </style>
+    
+    {% block styles %}{% endblock %}
   </head>
+  
   <body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-      <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">Microblog</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark border-bottom mb-3">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
+          <i class="bi bi-journal-music"></i> SignalSage
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav"
+                aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('main.index') }}">{{ _('Home') }}</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('main.explore') }}">{{ _('Explore') }}</a>
-            </li>
-            {% if g.search_form %}
-            <form class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}">
-                <div class="form-group">
-                    {{ g.search_form.q(size=20, class='form-control', placeholder=g.search_form.q.label.text) }}
-                </div>
-            </form>
-            {% endif %}
-          </ul>
-          <ul class="navbar-nav mb-2 mb-lg-0">
-            {% if current_user.is_anonymous %}
-            <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a>
-            </li>
-            {% else %}
-            <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('main.messages') }}">{{ _('Messages') }}
-                {% set unread_message_count = current_user.unread_message_count() %}
-                <span id="message_count" class="badge text-bg-danger"
-                      style="visibility: {% if unread_message_count %}visible
-                                         {% else %}hidden{% endif %};">
-                    {{ unread_message_count }}
-                </span>
+              <a class="nav-link" href="{{ url_for('main.index') }}">
+                <i class="bi bi-house-door"></i> Home
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('main.user', username=current_user.username) }}">{{ _('Profile') }}</a>
+              <a class="nav-link" href="{{ url_for('main.explore') }}">
+                <i class="bi bi-compass"></i> Explore
+              </a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
+            
+            <!-- Scripture & Faith Dropdown -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="scriptureDropdown" role="button" 
+                 data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-book"></i> Scripture
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="scriptureDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('logos.read_scripture') }}">
+                  <i class="bi bi-book-half"></i> Today's Reading
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('logos.search_scripture') }}">
+                  <i class="bi bi-search"></i> Search Bible
+                </a></li>
+                {% if current_user.is_authenticated %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('logos.journal_list') }}">
+                  <i class="bi bi-journal-text"></i> My Journal
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('logos.create_journal_entry') }}">
+                  <i class="bi bi-plus-circle"></i> New Entry
+                </a></li>
+                {% endif %}
+              </ul>
             </li>
+            
+            <!-- Music Dropdown -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="musicDropdown" role="button" 
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-music-note"></i> Music
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="musicDropdown">
+                {% if current_user.is_authenticated %}
+                <li><a class="dropdown-item" href="{{ url_for('music.search') }}">
+                  <i class="bi bi-search"></i> Search Gospel Music
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('music.playlists') }}">
+                  <i class="bi bi-music-note-list"></i> My Playlists
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('music.login') }}">
+                  <i class="bi bi-spotify"></i> Connect Spotify
+                </a></li>
+                {% else %}
+                <li><a class="dropdown-item" href="{{ url_for('auth.login') }}">
+                  <i class="bi bi-box-arrow-in-right"></i> Login to Access Music
+                </a></li>
+                {% endif %}
+              </ul>
+            </li>
+            <!-- SoundLab Dropdown -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="soundlabDropdown" role="button" 
+                 data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-mic-fill"></i> SoundLab
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="soundlabDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('soundlab.upload_page') }}">
+                  <i class="bi bi-upload"></i> Upload Audio
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('soundlab.suggest') }}">
+                  <i class="bi bi-lightbulb"></i> Suggest Content
+                </a></li>
+                {% if current_user.is_authenticated %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('main.explore') }}?filter=audio">
+                  <i class="bi bi-music-note-list"></i> Browse Audio
+                </a></li>
+                {% endif %}
+              </ul>
+            </li>
+          </ul>
+
+          
+          <!-- Search Form -->
+          {% if g.search_form %}
+          <form class="d-flex me-3" method="GET" action="{{ url_for('main.search') }}">
+            {{ g.search_form.hidden_tag() }}
+            <div class="input-group">
+              {{ g.search_form.q(class='form-control form-control-sm', placeholder=_('Search posts...')) }}
+              <button class="btn btn-outline-light btn-sm" type="submit">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </form>
+          {% endif %}
+          
+          <ul class="navbar-nav ms-auto">
+            {% if current_user.is_authenticated %}
+              <li class="nav-item">
+                <a class="nav-link position-relative" href="{{ url_for('main.messages') }}">
+                  <i class="bi bi-envelope"></i> Messages
+                  {% set unread_count = current_user.unread_message_count() %}
+                  {% if unread_count > 0 %}
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ unread_count }}
+                  </span>
+                  {% endif %}
+                </a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                  <li><a class="dropdown-item" href="{{ url_for('main.user', username=current_user.username) }}">
+                    <i class="bi bi-person"></i> Profile
+                  </a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                  </a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('main.edit_profile') }}">
+                    <i class="bi bi-gear"></i> Settings
+                  </a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                  </a></li>
+                </ul>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth.login') }}">
+                  <i class="bi bi-box-arrow-in-right"></i> Login
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth.register') }}">
+                  <i class="bi bi-person-plus"></i> Register
+                </a>
+              </li>
             {% endif %}
           </ul>
         </div>
       </div>
     </nav>
-    <div class="container mt-3">
-      {% if current_user.is_authenticated %}
-      {% with tasks = current_user.get_tasks_in_progress() %}
-      {% if tasks %}
-        {% for task in tasks %}
-        <div class="alert alert-success" role="alert">
-          {{ task.description }}
-          <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
-        </div>
-        {% endfor %}
-      {% endif %}
+    
+    <!-- Flash messages -->
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else ('success' if category == 'success' else 'info') }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
       {% endwith %}
-      {% endif %}
-
-      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-info" role="alert">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-      {% endwith %}
+    </div>
+    
+    <!-- Main content -->
+    <div class="container mt-2">
       {% block content %}{% endblock %}
     </div>
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-        crossorigin="anonymous">
-    </script>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light text-center py-4 mt-5">
+      <div class="container">
+        <p>&copy; 2024 SignalSage. Connecting faith and sound.</p>
+        <p class="mb-0">
+          <small>
+            <a href="#" class="text-light me-3">About</a>
+            <a href="#" class="text-light me-3">Privacy</a>
+            <a href="#" class="text-light">Contact</a>
+          </small>
+        </p>
+      </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
+    
+    <!-- Global JavaScript functions -->
     <script>
-      async function translate(sourceElem, destElem, sourceLang, destLang) {
-        document.getElementById(destElem).innerHTML = 
-          '<img src="{{ url_for('static', filename='loading.gif') }}">';
-        const response = await fetch('/translate', {
+      // Translation function (if you're using it)
+      function translate(sourceElem, destElem, sourceLang, destLang) {
+        fetch('/translate', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json; charset=utf-8'},
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             text: document.getElementById(sourceElem).innerText,
             source_language: sourceLang,
             dest_language: destLang
           })
         })
-        const data = await response.json();
-        document.getElementById(destElem).innerText = data.text;
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById(destElem).innerHTML = 
+            '<p>' + data.text + '</p>';
+        })
+        .catch(error => {
+          console.error('Translation error:', error);
+        });
       }
-
-      function initialize_popovers() {
-        const popups = document.getElementsByClassName('user_popup');
-        for (let i = 0; i < popups.length; i++) {
-          const popover = new bootstrap.Popover(popups[i], {
-            content: 'Loading...',
-            trigger: 'hover focus',
-            placement: 'right',
-            html: true,
-            sanitize: false,
-            delay: {show: 500, hide: 0},
-            container: popups[i],
-            customClass: 'd-inline',
+      
+      // Auto-hide alerts after 5 seconds
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          var alerts = document.querySelectorAll('.alert:not(.alert-primary)');
+          alerts.forEach(function(alert) {
+            var bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
           });
-          popups[i].addEventListener('show.bs.popover', async (ev) => {
-            if (ev.target.popupLoaded) {
-              return;
-            }
-            const response = await fetch('/user/' + ev.target.innerText.trim() + '/popup');
-            const data = await response.text();
-            const popover = bootstrap.Popover.getInstance(ev.target);
-            if (popover && data) {
-              ev.target.popupLoaded = true;
-              popover.setContent({'.popover-body': data});
-              flask_moment_render_all();
-            }
-          });
-        }
-      }
-      document.addEventListener('DOMContentLoaded', initialize_popovers);
-
-      function set_message_count(n) {
-        const count = document.getElementById('message_count');
-        count.innerText = n;
-        count.style.visibility = n ? 'visible' : 'hidden';
-      }
-
-      function set_task_progress(task_id, progress) {
-        const progressElement = document.getElementById(task_id + '-progress');
-        if (progressElement) {
-          progressElement.innerText = progress;
-        }
-      }
-
-      {% if current_user.is_authenticated %}
-      function initialize_notifications() {
-        let since = 0;
-        setInterval(async function() {
-          const response = await fetch('{{ url_for('main.notifications') }}?since=' + since);
-          const notifications = await response.json();
-          for (let i = 0; i < notifications.length; i++) {
-            switch (notifications[i].name) {
-              case 'unread_message_count':
-                set_message_count(notifications[i].data);
-                break;
-              case 'task_progress':
-                set_task_progress(notifications[i].data.task_id,
-                    notifications[i].data.progress);
-                break;
-            }
-            since = notifications[i].timestamp;
-          }
-        }, 10000);
-      }
-      document.addEventListener('DOMContentLoaded', initialize_notifications);
-      {% endif %}
+        }, 5000);
+      });
     </script>
+    
+    {% block scripts %}{% endblock %}
   </body>
 </html>

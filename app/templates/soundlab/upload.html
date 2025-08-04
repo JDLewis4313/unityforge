@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% import 'bootstrap_wtf.html' as wtf %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-upload"></i> Upload Audio</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Upload audio files for analysis and sharing. Supported formats: MP3, WAV, M4A, OGG, FLAC
+                </p>
+                {{ wtf.quick_form(form) }}
+                
+                <div class="mt-4">
+                    <h5>What happens after upload?</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Audio analysis and feature extraction</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Spectrogram generation</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Tempo and peak detection</li>
+                        <li><i class="bi bi-check-circle text-success me-2"></i>Ready for sharing with the community</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

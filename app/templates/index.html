@@ -1,26 +1,306 @@
 {% extends "base.html" %}
-{% import "bootstrap_wtf.html" as wtf %}
+{% import 'bootstrap_wtf.html' as wtf %}
 
 {% block content %}
-    <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
-    {% if form %}
-    {{ wtf.quick_form(form) }}
-    {% endif %}
-    {% for post in posts %}
-        {% include '_post.html' %}
-    {% endfor %}
-    <nav aria-label="Post navigation">
-        <ul class="pagination">
-            <li class="page-item{% if not prev_url %} disabled{% endif %}">
-                <a class="page-link" href="{{ prev_url }}">
-                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
-                </a>
-            </li>
-            <li class="page-item{% if not next_url %} disabled{% endif %}">
-                <a class="page-link" href="{{ next_url }}">
-                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
+<!-- Today's Scripture - Beautiful Prominent Display -->
+{% if current_user.is_authenticated and g.daily_scripture %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-bookmark-star fs-4 me-3"></i>
+                            <div>
+                                <h4 class="mb-0">Today's Scripture</h4>
+                                <small class="opacity-75">{{ g.daily_scripture.date.strftime('%B %d, %Y') }}</small>
+                            </div>
+                        </div>
+                        
+                        <h5 class="text-warning mb-3">{{ g.daily_scripture.reference }}</h5>
+                        
+                        <blockquote class="mb-3">
+                            <p class="fs-6 mb-0" style="font-style: italic; line-height: 1.6;">
+                                {% if g.daily_scripture.text|length > 200 %}
+                                    <span id="scripture-preview">{{ g.daily_scripture.text[:200] }}...</span>
+                                    <span id="scripture-full" style="display: none;">{{ g.daily_scripture.text }}</span>
+                                    <button class="btn btn-link text-warning p-0 ms-2" onclick="toggleScripture()" id="toggle-btn">
+                                        read more
+                                    </button>
+                                {% else %}
+                                    {{ g.daily_scripture.text }}
+                                {% endif %}
+                            </p>
+                            {% if g.daily_scripture.translation %}
+                            <footer class="blockquote-footer mt-2">
+                                <cite class="opacity-75">{{ g.daily_scripture.translation }}</cite>
+                            </footer>
+                            {% endif %}
+                        </blockquote>
+                    </div>
+                    
+                    <div class="col-md-4 text-center">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('logos.create_journal_entry') }}?scripture_id={{ g.daily_scripture.id }}" 
+                               class="btn btn-warning btn-lg">
+                                <i class="bi bi-journal-plus me-2"></i>
+                                Journal About This
+                            </a>
+                            <a href="{{ url_for('logos.read_scripture') }}" 
+                               class="btn btn-outline-light">
+                                <i class="bi bi-book me-2"></i>
+                                Read Full Chapter
+                            </a>
+                            <a href="{{ url_for('main.create_scripture_post_route', scripture_id=g.daily_scripture.id) }}" 
+                               class="btn btn-outline-light btn-sm">
+                                <i class="bi bi-share me-2"></i>
+                                Share This Verse
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Post Creation Form -->
+        {% if current_user.is_authenticated %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-square-text"></i> Share Something</h5>
+            </div>
+            <div class="card-body">
+                {{ wtf.quick_form(form) }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Posts Feed -->
+        <div id="posts-feed">
+            {% if posts %}
+                {% for post in posts %}
+                    {% include '_post.html' %}
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">Welcome to SignalSage!</h4>
+                    {% if current_user.is_authenticated %}
+                        <p class="text-muted">Your feed is empty. Follow some users or create your first post!</p>
+                        <div class="mt-3">
+                            <a href="{{ url_for('main.explore') }}" class="btn btn-primary me-2">
+                                <i class="bi bi-compass"></i> Explore
+                            </a>
+                            {% if not g.daily_scripture %}
+                            <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-outline-primary">
+                                <i class="bi bi-book"></i> Read Scripture
+                            </a>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Join our community to share and discover content!</p>
+                        <div class="mt-3">
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-primary me-2">
+                                <i class="bi bi-person-plus"></i> Join Now
+                            </a>
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination -->
+        {% if prev_url or next_url %}
+        <nav aria-label="Posts pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if prev_url %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ prev_url }}">
+                        <i class="bi bi-chevron-left"></i> Newer
+                    </a>
+                </li>
+                {% endif %}
+                {% if next_url %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ next_url }}">
+                        Older <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        {% if current_user.is_authenticated %}
+        
+        <!-- Recent Activity -->
+        {% if recent_audio or recent_journals %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-activity"></i> Your Recent Activity</h6>
+            </div>
+            <div class="card-body">
+                <!-- Recent Journal Entries -->
+                {% if recent_journals %}
+                <div class="mb-3">
+                    <small class="text-muted fw-bold">Recent Journal Entries</small>
+                    {% for entry in recent_journals %}
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-journal-text text-info me-2"></i>
+                        <div class="flex-grow-1">
+                            <small class="d-block">{{ entry.title }}</small>
+                            <tiny class="text-muted">{{ moment(entry.created_at).fromNow() }}</tiny>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="d-grid mt-2">
+                        <a href="{{ url_for('logos.journal_list') }}" class="btn btn-outline-info btn-sm">
+                            View All Entries
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Recent Audio -->
+                {% if recent_audio %}
+                <div>
+                    <small class="text-muted fw-bold">Recent Audio Uploads</small>
+                    {% for audio in recent_audio %}
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-music-note text-success me-2"></i>
+                        <div class="flex-grow-1">
+                            <small class="d-block">{{ audio.filename }}</small>
+                            <tiny class="text-muted">{{ moment(audio.created_at).fromNow() }}</tiny>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="d-grid mt-2">
+                        <a href="{{ url_for('main.explore', filter='audio') }}" class="btn btn-outline-success btn-sm">
+                            Browse Audio
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Links -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if not g.daily_scripture %}
+                    <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-book"></i> Daily Scripture
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('soundlab.upload_page') }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-upload"></i> Upload Audio
+                    </a>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('logos.search_scripture') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-search"></i> Search Scripture
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-person-circle"></i> Your Profile</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <img src="{{ current_user.avatar(50) }}" class="rounded-circle me-3" width="50" height="50">
+                    <div>
+                        <h6 class="mb-0">{{ current_user.username }}</h6>
+                        <small class="text-muted">
+                            {{ current_user.posts_count() }} posts • 
+                            {{ current_user.followers_count() }} followers
+                        </small>
+                    </div>
+                </div>
+                {% if current_user.about_me %}
+                <p class="card-text small">{{ current_user.about_me }}</p>
+                {% endif %}
+                <div class="d-grid">
+                    <a href="{{ url_for('main.user', username=current_user.username) }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person"></i> View Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Not logged in sidebar -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-heart"></i> Welcome to SignalSage</h6>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Join our community to share scripture, audio content, and connect with others on their spiritual journey.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-person-plus"></i> Join Community
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign In
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-star"></i> Features</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><i class="bi bi-book text-primary me-2"></i>Daily Scripture Reading</li>
+                    <li class="mb-2"><i class="bi bi-journal-text text-info me-2"></i>Spiritual Journaling</li>
+                    <li class="mb-2"><i class="bi bi-music-note text-success me-2"></i>Audio Content Sharing</li>
+                    <li class="mb-0"><i class="bi bi-people text-warning me-2"></i>Community Connection</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleScripture() {
+    const preview = document.getElementById('scripture-preview');
+    const full = document.getElementById('scripture-full');
+    const btn = document.getElementById('toggle-btn');
+    
+    if (full.style.display === 'none') {
+        preview.style.display = 'none';
+        full.style.display = 'inline';
+        btn.textContent = 'show less';
+    } else {
+        preview.style.display = 'inline';
+        full.style.display = 'none';
+        btn.textContent = 'read more';
+    }
+}
+</script>
 {% endblock %}

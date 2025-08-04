@@ -1,4 +1,9 @@
+# Flask
+instance/
+.webassets-cache
+__pycache__/
 *.py[cod]
+*$py.class
 
 # C extensions
 *.so
@@ -17,7 +22,7 @@ develop-eggs
 .installed.cfg
 lib
 lib64
-__pycache__
+
 
 # Installer logs
 pip-log.txt
@@ -35,6 +40,46 @@ nosetests.xml
 .project
 .pydevproject
 
-venv
-app.db
+# Environment
+.env
+.venv/
+venv/
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
 microblog.log*
+
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Heroku Python buildpack cache
+.pythonlibs/
+
+# macOS code signing artifacts
+*.pem
+*.cert
+
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite
+.env
+.venv/
+tests.py
+logs/
+certs/

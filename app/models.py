@@ -1,9 +1,9 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from hashlib import md5
 import json
 import secrets
 from time import time
-from typing import Optional
+from typing import List, Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from flask import current_app, url_for
@@ -14,7 +14,6 @@ import redis
 import rq
 from app import db, login
 from app.search import add_to_index, remove_from_index, query_index
-
 
 class SearchableMixin:
     @classmethod
@@ -96,6 +95,7 @@ followers = sa.Table(
 
 
 class User(PaginatedAPIMixin, UserMixin, db.Model):
+    __tablename__ = "user"
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True,
                                                 unique=True)
@@ -128,6 +128,10 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
         back_populates='user')
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
 
+    journal_entries: so.Mapped[so.Query["JournalEntry"]] = so.relationship(
+        "JournalEntry", back_populates="user", cascade="all, delete-orphan",lazy="dynamic",
+    )
+    
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
@@ -284,23 +288,64 @@ def load_user(id):
     return db.session.get(User, int(id))
 
 
-class Post(SearchableMixin, db.Model):
-    __searchable__ = ['body']
+class JournalEntry(db.Model):
+    __tablename__ = "journal_entry"
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    body: so.Mapped[str] = so.mapped_column(sa.String(140))
+    user_id: so.Mapped[int] = so.mapped_column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    scripture_id: so.Mapped[int] = so.mapped_column(db.Integer, db.ForeignKey('scripture.id'), nullable=True)
+    title: so.Mapped[str] = so.mapped_column(db.String(140))
+    content: so.Mapped[str] = so.mapped_column(db.Text, nullable=False)
+    created_at: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+    private: so.Mapped[bool] = so.mapped_column(db.Boolean, default=True)
+
+    user: so.Mapped["User"] = so.relationship(back_populates="journal_entries")
+    scripture: so.Mapped["Scripture"] = so.relationship(back_populates="journal_refs")
+
+class Scripture(SearchableMixin, db.Model):
+    __tablename__ = "scripture"
+    __searchable__ = ['text', 'reference']
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    reference: so.Mapped[str] = so.mapped_column(db.String(100), nullable=False)
+    text: so.Mapped[str] = so.mapped_column(db.Text, nullable=False)
+    translation: so.Mapped[str] = so.mapped_column(db.String(50), nullable=True)
+    date: so.Mapped[date] = so.mapped_column(db.Date, nullable=False, unique=True)
+    audio_filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(120))
+
+    journal_refs: so.Mapped[List["JournalEntry"]] = so.relationship(
+        "JournalEntry", back_populates="scripture", cascade="all, delete-orphan"
+    )
+
+class Post(SearchableMixin, db.Model):
+    __tablename__ = "post"
+    __searchable__ = ['body']
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    body: so.Mapped[str] = so.mapped_column(sa.String(280))
     timestamp: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),
                                                index=True)
+    media_filename: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    media_type: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    scripture_reference: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    scripture_text: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
     language: so.Mapped[Optional[str]] = so.mapped_column(sa.String(5))
+    source_url: so.Mapped[Optional[str]] = so.mapped_column(sa.String(512))
+    is_suggestion: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
+    title: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
+    created_at: so.Mapped[datetime] = so.mapped_column(
+        default=lambda: datetime.now(timezone.utc))
 
     author: so.Mapped[User] = so.relationship(back_populates='posts')
 
     def __repr__(self):
-        return '<Post {}>'.format(self.body)
+        return f'<Post {self.title or self.body}>'
 
 
 class Message(db.Model):
+    __tablename__ = "message"
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),
                                                  index=True)
@@ -322,6 +367,7 @@ class Message(db.Model):
 
 
 class Notification(db.Model):
+    __tablename__ = "notification"
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),
@@ -336,6 +382,7 @@ class Notification(db.Model):
 
 
 class Task(db.Model):
+    __tablename__ = "task"
     id: so.Mapped[str] = so.mapped_column(sa.String(36), primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128))
@@ -354,3 +401,25 @@ class Task(db.Model):
     def get_progress(self):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
+
+class SoundEntry(db.Model):
+    __tablename__ = "sound_entry"
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    filename: so.Mapped[str] = so.mapped_column(sa.String(120), nullable=False)
+    duration_seconds: so.Mapped[Optional[float]] = so.mapped_column(sa.Float)
+    peak_db: so.Mapped[Optional[float]] = so.mapped_column(sa.Float)
+    tempo_bpm: so.Mapped[Optional[float]] = so.mapped_column(sa.Float)
+    spectrogram_image: so.Mapped[Optional[str]] = so.mapped_column(sa.String(120))
+    created_at: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+    notes: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+
+    sessions: so.Mapped[List['AudioSession']] = so.relationship(back_populates='sound_entry')
+
+class AudioSession(db.Model):
+    __tablename__ = "audio_session"
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    sound_entry_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('sound_entry.id'))
+    notes: so.Mapped[str] = so.mapped_column(sa.Text)
+    created_at: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+
+    sound_entry: so.Mapped['SoundEntry'] = so.relationship(back_populates='sessions')

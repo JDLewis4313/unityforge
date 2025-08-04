@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-music-note-list"></i> Your Spotify Playlists</h2>
+                <a href="{{ url_for('music.search') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-search"></i> Search Music
+                </a>
+            </div>
+
+            <!-- Playlists List -->
+            {% if playlists %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Your Playlists</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for pl in playlists %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ pl.name }}</h6>
+                            {% if pl.description %}
+                            <p class="mb-1 text-muted small">{{ pl.description }}</p>
+                            {% endif %}
+                            <small class="text-muted">{{ pl.tracks.total }} tracks</small>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('music.view_playlist', pid=pl.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <h5><i class="bi bi-info-circle"></i> No Playlists Found</h5>
+                <p class="mb-0">You don't have any playlists yet. Create your first playlist below!</p>
+            </div>
+            {% endif %}
+
+            <!-- Create New Playlist -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Create New Playlist</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('music.playlists_create') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Playlist Name</label>
+                            <input type="text" id="name" name="name" class="form-control" 
+                                   placeholder="Enter playlist name..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="desc" class="form-label">Description (Optional)</label>
+                            <textarea id="desc" name="desc" class="form-control" rows="2" 
+                                     placeholder="Describe your playlist..."></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Playlist
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

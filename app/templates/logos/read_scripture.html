@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        {% if request.args.get('book') %}
+                            Scripture Reading
+                        {% else %}
+                            Today's Scripture
+                        {% endif %}
+                    </h3>
+                    {% if verse.date %}
+                    <small class="text-muted">{{ verse.date.strftime('%B %d, %Y') }}</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ verse.reference }}</h4>
+                    <blockquote class="blockquote">
+                        <p class="mb-0">{{ verse.text }}</p>
+                        <footer class="blockquote-footer mt-2">
+                            <cite title="Translation">{{ verse.translation or 'KJV' }}</cite>
+                        </footer>
+                    </blockquote>
+                    
+                    <!-- Auto-playing audio if available -->
+                    {% if verse.audio_filename %}
+                    <div class="audio-meditation mt-4 p-3 bg-light rounded">
+                        <h6><i class="bi bi-music-note me-2"></i>Meditation Audio</h6>
+                        <audio id="scripture-audio" controls autoplay loop>
+                            <source src="{{ url_for('static', filename='instrumentals/' + verse.audio_filename) }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <small class="text-muted d-block mt-2">
+                            Instrumental meditation for today's scripture
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        {% if verse.id %}
+                        <a href="{{ url_for('logos.create_journal_entry') }}?scripture_id={{ verse.id }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-journal-plus"></i> Journal About This
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('logos.create_journal_entry') }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-journal-plus"></i> Create Journal Entry
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> Back to Home
+                        </a>
+                        {% if not request.args.get('book') %}
+                        <a href="{{ url_for('logos.bible_reader') }}" class="btn btn-outline-info">
+                            <i class="bi bi-book"></i> Bible Reader
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scripture Navigation -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Read a Specific Passage</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('logos.read_scripture') }}" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="book" class="form-label">Book</label>
+                            <select name="book" id="book" class="form-select" required>
+                                <option value="">Select a book...</option>
+                                <optgroup label="Old Testament">
+                                    <option value="Genesis" {% if request.args.get('book') == 'Genesis' %}selected{% endif %}>Genesis</option>
+                                    <option value="Exodus" {% if request.args.get('book') == 'Exodus' %}selected{% endif %}>Exodus</option>
+                                    <option value="Leviticus" {% if request.args.get('book') == 'Leviticus' %}selected{% endif %}>Leviticus</option>
+                                    <option value="Numbers" {% if request.args.get('book') == 'Numbers' %}selected{% endif %}>Numbers</option>
+                                    <option value="Deuteronomy" {% if request.args.get('book') == 'Deuteronomy' %}selected{% endif %}>Deuteronomy</option>
+                                    <option value="Joshua" {% if request.args.get('book') == 'Joshua' %}selected{% endif %}>Joshua</option>
+                                    <option value="Judges" {% if request.args.get('book') == 'Judges' %}selected{% endif %}>Judges</option>
+                                    <option value="Ruth" {% if request.args.get('book') == 'Ruth' %}selected{% endif %}>Ruth</option>
+                                    <option value="1 Samuel" {% if request.args.get('book') == '1 Samuel' %}selected{% endif %}>1 Samuel</option>
+                                    <option value="2 Samuel" {% if request.args.get('book') == '2 Samuel' %}selected{% endif %}>2 Samuel</option>
+                                    <option value="1 Kings" {% if request.args.get('book') == '1 Kings' %}selected{% endif %}>1 Kings</option>
+                                    <option value="2 Kings" {% if request.args.get('book') == '2 Kings' %}selected{% endif %}>2 Kings</option>
+                                    <option value="Psalms" {% if request.args.get('book') == 'Psalms' %}selected{% endif %}>Psalms</option>
+                                    <option value="Proverbs" {% if request.args.get('book') == 'Proverbs' %}selected{% endif %}>Proverbs</option>
+                                    <option value="Ecclesiastes" {% if request.args.get('book') == 'Ecclesiastes' %}selected{% endif %}>Ecclesiastes</option>
+                                    <option value="Isaiah" {% if request.args.get('book') == 'Isaiah' %}selected{% endif %}>Isaiah</option>
+                                    <option value="Jeremiah" {% if request.args.get('book') == 'Jeremiah' %}selected{% endif %}>Jeremiah</option>
+                                    <option value="Ezekiel" {% if request.args.get('book') == 'Ezekiel' %}selected{% endif %}>Ezekiel</option>
+                                    <option value="Daniel" {% if request.args.get('book') == 'Daniel' %}selected{% endif %}>Daniel</option>
+                                </optgroup>
+                                <optgroup label="New Testament">
+                                    <option value="Matthew" {% if request.args.get('book') == 'Matthew' %}selected{% endif %}>Matthew</option>
+                                    <option value="Mark" {% if request.args.get('book') == 'Mark' %}selected{% endif %}>Mark</option>
+                                    <option value="Luke" {% if request.args.get('book') == 'Luke' %}selected{% endif %}>Luke</option>
+                                    <option value="John" {% if request.args.get('book') == 'John' %}selected{% endif %}>John</option>
+                                    <option value="Acts" {% if request.args.get('book') == 'Acts' %}selected{% endif %}>Acts</option>
+                                    <option value="Romans" {% if request.args.get('book') == 'Romans' %}selected{% endif %}>Romans</option>
+                                    <option value="1 Corinthians" {% if request.args.get('book') == '1 Corinthians' %}selected{% endif %}>1 Corinthians</option>
+                                    <option value="2 Corinthians" {% if request.args.get('book') == '2 Corinthians' %}selected{% endif %}>2 Corinthians</option>
+                                    <option value="Galatians" {% if request.args.get('book') == 'Galatians' %}selected{% endif %}>Galatians</option>
+                                    <option value="Ephesians" {% if request.args.get('book') == 'Ephesians' %}selected{% endif %}>Ephesians</option>
+                                    <option value="Philippians" {% if request.args.get('book') == 'Philippians' %}selected{% endif %}>Philippians</option>
+                                    <option value="Colossians" {% if request.args.get('book') == 'Colossians' %}selected{% endif %}>Colossians</option>
+                                    <option value="1 Thessalonians" {% if request.args.get('book') == '1 Thessalonians' %}selected{% endif %}>1 Thessalonians</option>
+                                    <option value="2 Thessalonians" {% if request.args.get('book') == '2 Thessalonians' %}selected{% endif %}>2 Thessalonians</option>
+                                    <option value="1 Timothy" {% if request.args.get('book') == '1 Timothy' %}selected{% endif %}>1 Timothy</option>
+                                    <option value="2 Timothy" {% if request.args.get('book') == '2 Timothy' %}selected{% endif %}>2 Timothy</option>
+                                    <option value="Titus" {% if request.args.get('book') == 'Titus' %}selected{% endif %}>Titus</option>
+                                    <option value="Philemon" {% if request.args.get('book') == 'Philemon' %}selected{% endif %}>Philemon</option>
+                                    <option value="Hebrews" {% if request.args.get('book') == 'Hebrews' %}selected{% endif %}>Hebrews</option>
+                                    <option value="James" {% if request.args.get('book') == 'James' %}selected{% endif %}>James</option>
+                                    <option value="1 Peter" {% if request.args.get('book') == '1 Peter' %}selected{% endif %}>1 Peter</option>
+                                    <option value="2 Peter" {% if request.args.get('book') == '2 Peter' %}selected{% endif %}>2 Peter</option>
+                                    <option value="1 John" {% if request.args.get('book') == '1 John' %}selected{% endif %}>1 John</option>
+                                    <option value="2 John" {% if request.args.get('book') == '2 John' %}selected{% endif %}>2 John</option>
+                                    <option value="3 John" {% if request.args.get('book') == '3 John' %}selected{% endif %}>3 John</option>
+                                    <option value="Jude" {% if request.args.get('book') == 'Jude' %}selected{% endif %}>Jude</option>
+                                    <option value="Revelation" {% if request.args.get('book') == 'Revelation' %}selected{% endif %}>Revelation</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="chapter" class="form-label">Chapter</label>
+                            <input type="number" name="chapter" id="chapter" class="form-control" 
+                                   value="{{ request.args.get('chapter', '1') }}" min="1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="verse" class="form-label">Verse</label>
+                            <input type="number" name="verse" id="verse" class="form-control" 
+                                value="{{ request.args.get('verse', '1') }}" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-outline-primary d-block w-100">
+                                <i class="bi bi-book"></i> Read
+                            </button>
+                        </div>
+                    </form>
+                    <small class="text-muted mt-2 d-block">
+                        Select a book, chapter, and verse to read a specific passage.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Search Scripture -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Search Scripture</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('logos.search_scripture') }}" class="d-flex">
+                        <input type="text" name="q" class="form-control me-2" 
+                               placeholder="Search for verses, keywords, or references..." 
+                               value="{{ request.args.get('q', '') }}">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </form>
+                    <small class="text-muted">
+                        Try searching for keywords like "love", "hope", or specific references like "John 3:16"
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simple volume control and user-friendly audio
+document.addEventListener('DOMContentLoaded', function() {
+    const audio = document.getElementById('scripture-audio');
+    if (audio) {
+        audio.volume = 0.3; // Start at lower volume
+        
+        // Add a simple fade in effect
+        audio.addEventListener('loadeddata', function() {
+            audio.volume = 0;
+            const fadeIn = setInterval(function() {
+                if (audio.volume < 0.3) {
+                    audio.volume += 0.05;
+                } else {
+                    clearInterval(fadeIn);
+                    audio.volume = 0.3;
+                }
+            }, 100);
+        });
+    }
+});
+</script>
+{% endblock %}
