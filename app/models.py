@@ -131,6 +131,8 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     journal_entries: so.Mapped[so.Query["JournalEntry"]] = so.relationship(
         "JournalEntry", back_populates="user", cascade="all, delete-orphan",lazy="dynamic",
     )
+
+    spotify_refresh_token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -423,3 +425,24 @@ class AudioSession(db.Model):
     created_at: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
     sound_entry: so.Mapped['SoundEntry'] = so.relationship(back_populates='sessions')
+
+class Prayer(db.Model):
+    __tablename__ = "prayer"
+
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    title: so.Mapped[str] = so.mapped_column(sa.String(200), nullable=False)
+    description: so.Mapped[Optional[str]] = so.mapped_column(sa.Text)
+    filename: so.Mapped[str] = so.mapped_column(sa.String(120), nullable=False)
+    duration_seconds: so.Mapped[Optional[float]] = so.mapped_column(sa.Float)
+
+    prayer_type: so.Mapped[str] = so.mapped_column(sa.String(50), default="personal")  # personal, pastoral, etc.
+    spiritual_focus: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))        # healing, gratitude, etc.
+    scripture_reference: so.Mapped[Optional[str]] = so.mapped_column(sa.String(100))
+    church_service_date: so.Mapped[Optional[datetime.date]] = so.mapped_column(sa.Date)
+    is_public: so.Mapped[bool] = so.mapped_column(default=True)
+
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("user.id"), nullable=False)
+    created_at: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Prayer {self.title}>"

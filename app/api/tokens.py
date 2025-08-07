@@ -17,3 +17,10 @@ def revoke_token():
     token_auth.current_user().revoke_token()
     db.session.commit()
     return '', 204
+
+
+@bp.route('/csrf-token', methods=['GET'])
+def get_csrf_token():
+    """Get a fresh CSRF token"""
+    from flask_wtf.csrf import generate_csrf
+    return {'csrf_token': generate_csrf()}

@@ -1,42 +1,80 @@
+import os
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
-import os
-from flask import Flask, request, current_app
+from flask import Flask, current_app, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
-from flask_wtf.csrf import CSRFProtect  # ADD THIS LINE
+from flask_wtf.csrf import CSRFProtect
 from elasticsearch import Elasticsearch
 from redis import Redis
 import rq
-from config import Config
-
-def get_locale():
-    return request.accept_languages.best_match(current_app.config['LANGUAGES'])
-
+from rq_scheduler import Scheduler
+from config import get_config
 
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
-login.login_view = 'auth.login'
-login.login_message = _l('Please log in to access this page.')
 mail = Mail()
 moment = Moment()
 babel = Babel()
 csrf = CSRFProtect()
 
-def create_app(config_class=Config):
+login.login_view = 'auth.login'
+login.login_message = _l('Please log in to access this page.')
+
+def get_locale():
+    return request.accept_languages.best_match(current_app.config['LANGUAGES'])
+
+def setup_scheduler(app):
+    """Set up RQ-scheduler for recurring tasks."""
+    if app.config.get('SCHEDULER_ENABLED', True):
+        try:
+            scheduler = Scheduler(connection=app.redis)
+            
+            # Clear existing daily scripture job
+            for job in scheduler.get_jobs():
+                if job.id == 'daily_scripture_posts':
+                    scheduler.cancel(job)
+            
+            # Schedule daily scripture posts at midnight UTC
+            scheduler.cron(
+                "0 0 * * *",  # Midnight UTC
+                func='app.tasks.create_daily_scripture_posts',
+                id='daily_scripture_posts',
+                queue_name='unityforge-tasks'
+            )
+            
+            app.logger.info('Daily scripture posts scheduled for midnight UTC')
+        except Exception as e:
+            app.logger.error(f'Failed to setup scheduler: {e}')
+
+def create_app():
+    config_class = get_config()
     app = Flask(__name__)
     app.config.from_object(config_class)
+    config_class.init_app(app)
 
-    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
-    app.config['SPECTROGRAM_FOLDER'] = os.path.join(app.root_path, 'static', 'spectrograms')
-
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['SPECTROGRAM_FOLDER'], exist_ok=True)
+    # Force HTTPS URL generation for Spotify redirects
+    @app.before_request
+    def force_https_for_spotify():
+        # Only apply HTTPS enforcement if configured and not in testing
+        if (app.config.get('PREFERRED_URL_SCHEME') == 'https' and 
+            not app.testing and 
+            request.endpoint and 
+            'music' in request.endpoint):
+            
+            # Log the request details for debugging
+            app.logger.info(f"Request: {request.method} {request.url}")
+            app.logger.info(f"Is secure: {request.is_secure}")
+            app.logger.info(f"Scheme: {request.scheme}")
+            
+            # If this is a Spotify-related request and not HTTPS, log it
+            if not request.is_secure and not request.url.startswith('https://'):
+                app.logger.warning(f"Non-HTTPS request to Spotify endpoint: {request.url}")
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -45,17 +83,10 @@ def create_app(config_class=Config):
     moment.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
     csrf.init_app(app)
-    
-    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
-        if app.config['ELASTICSEARCH_URL'] else None
+
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) if app.config['ELASTICSEARCH_URL'] else None
     app.redis = Redis.from_url(app.config['REDIS_URL'])
-    app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
-
-    
-
-   
-   
-    
+    app.task_queue = rq.Queue('unityforge-tasks', connection=app.redis)  # Changed from microblog-tasks
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -72,52 +103,51 @@ def create_app(config_class=Config):
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 
-    # Add after existing blueprint registrations
     from app.logos import bp as logos_bp
     app.register_blueprint(logos_bp, url_prefix='/logos')
 
-    from app.soundlab import bp as soundlab_bp
-    app.register_blueprint(soundlab_bp, url_prefix='/soundlab')
-
     from app.music import bp as music_bp
-    app.register_blueprint(music_bp)
-
-    if not app.debug and not app.testing:
-        if app.config['MAIL_SERVER']:
-            auth = None
-            if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
-                auth = (app.config['MAIL_USERNAME'],
-                        app.config['MAIL_PASSWORD'])
-            secure = None
-            if app.config['MAIL_USE_TLS']:
-                secure = ()
-            mail_handler = SMTPHandler(
-                mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
-                fromaddr='no-reply@' + app.config['MAIL_SERVER'],
-                toaddrs=app.config['ADMINS'], subject='Microblog Failure',
-                credentials=auth, secure=secure)
-            mail_handler.setLevel(logging.ERROR)
-            app.logger.addHandler(mail_handler)
-
-        if app.config['LOG_TO_STDOUT']:
-            stream_handler = logging.StreamHandler()
-            stream_handler.setLevel(logging.INFO)
-            app.logger.addHandler(stream_handler)
-        else:
-            if not os.path.exists('logs'):
-                os.mkdir('logs')
-            file_handler = RotatingFileHandler('logs/microblog.log',
-                                               maxBytes=10240, backupCount=10)
-            file_handler.setFormatter(logging.Formatter(
-                '%(asctime)s %(levelname)s: %(message)s '
-                '[in %(pathname)s:%(lineno)d]'))
-            file_handler.setLevel(logging.INFO)
-            app.logger.addHandler(file_handler)
-
-        app.logger.setLevel(logging.INFO)
-        app.logger.info('Microblog startup')
-
+    app.register_blueprint(music_bp, url_prefix='/music')
+    
+    from app.prayer import bp as prayer_bp
+    app.register_blueprint(prayer_bp, url_prefix='/prayer')
+    
+    setup_logging(app)
+    
+    # Setup scheduler after everything is initialized
+    with app.app_context():
+        setup_scheduler(app)
+    
     return app
 
+def setup_logging(app):
+    if app.debug or app.testing:
+        return
+    if app.config['MAIL_SERVER']:
+        auth = None
+        if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
+            auth = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        secure = () if app.config['MAIL_USE_TLS'] else None
+        mail_handler = SMTPHandler(
+            mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+            fromaddr='no-reply@' + app.config['MAIL_SERVER'],
+            toaddrs=app.config['ADMINS'], subject='UnityForge Failure',
+            credentials=auth, secure=secure
+        )
+        mail_handler.setLevel(logging.ERROR)
+        app.logger.addHandler(mail_handler)
 
-from app import models
+    if app.config['LOG_TO_STDOUT']:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.INFO)
+        app.logger.addHandler(stream_handler)
+    else:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/unityforge.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('UnityForge startup')

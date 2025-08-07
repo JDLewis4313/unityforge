@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="card mb-4 scripture-banner text-white text-center p-4">
+    <h3><i class="bi bi-collection"></i> My Prayers</h3>
+    <p class="opacity-90">Your personal reflections and spoken prayers in one sacred place</p>
+  </div>
+
+  {% if prayers %}
+    <div class="list-group">
+      {% for prayer in prayers %}
+      <a href="{{ url_for('prayer.view', id=prayer.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ prayer.title }}</strong>
+            <br>
+            <small class="text-muted">{{ prayer.prayer_type.title() }}{% if prayer.spiritual_focus %} • {{ prayer.spiritual_focus.title() }}{% endif %}</small>
+          </div>
+          <small class="text-muted">{{ moment(prayer.created_at).fromNow() }}</small>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-heart display-3 text-muted"></i>
+      <h4 class="text-muted">You haven’t saved any prayers yet</h4>
+      <p class="text-muted">Craft one or share an audio prayer to begin your journey</p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{{ url_for('prayer.craft') }}" class="btn btn-outline-primary">Craft a Prayer</a>
+        <a href="{{ url_for('prayer.share') }}" class="btn btn-primary">Share Audio Prayer</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,73 +1,64 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-music-note-list"></i> Your Spotify Playlists</h2>
-                <a href="{{ url_for('music.search') }}" class="btn btn-outline-primary">
-                    <i class="bi bi-search"></i> Search Music
-                </a>
-            </div>
-
-            <!-- Playlists List -->
-            {% if playlists %}
             <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Your Playlists</h5>
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-music-note-list"></i> Your Playlists</h3>
+                    <a href="{{ url_for('music.search') }}" class="btn btn-light btn-sm">
+                        <i class="bi bi-search"></i> Search Music
+                    </a>
                 </div>
-                <div class="list-group list-group-flush">
-                    {% for pl in playlists %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">{{ pl.name }}</h6>
-                            {% if pl.description %}
-                            <p class="mb-1 text-muted small">{{ pl.description }}</p>
-                            {% endif %}
-                            <small class="text-muted">{{ pl.tracks.total }} tracks</small>
-                        </div>
-                        <div>
-                            <a href="{{ url_for('music.view_playlist', pid=pl.id) }}" 
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> View
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% else %}
-            <div class="alert alert-info">
-                <h5><i class="bi bi-info-circle"></i> No Playlists Found</h5>
-                <p class="mb-0">You don't have any playlists yet. Create your first playlist below!</p>
-            </div>
-            {% endif %}
-
-            <!-- Create New Playlist -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Create New Playlist</h5>
-                </div>
+                
                 <div class="card-body">
-                    <form method="post" action="{{ url_for('music.playlists_create') }}">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Playlist Name</label>
-                            <input type="text" id="name" name="name" class="form-control" 
-                                   placeholder="Enter playlist name..." required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="desc" class="form-label">Description (Optional)</label>
-                            <textarea id="desc" name="desc" class="form-control" rows="2" 
-                                     placeholder="Describe your playlist..."></textarea>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Create Playlist
-                            </button>
+                    <h5 class="mb-3">Create New Playlist</h5>
+                    <form method="post" action="{{ url_for('music.playlists_create') }}" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <input type="text" name="name" class="form-control" placeholder="Playlist Name" required>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" name="desc" class="form-control" placeholder="Description (Optional)">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-circle"></i> Create
+                                </button>
+                            </div>
                         </div>
                     </form>
+                    
+                    {% if playlists %}
+                    <h5 class="mb-3">Your Spotify Playlists</h5>
+                    <div class="list-group">
+                        {% for pl in playlists %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1">{{ pl.name }}</h5>
+                                    {% if pl.description %}
+                                    <p class="mb-1 text-muted small">{{ pl.description }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">{{ pl.tracks.total }} tracks</small>
+                                </div>
+                                {% if pl.external_urls and pl.external_urls.spotify %}
+                                <a href="{{ pl.external_urls.spotify }}" target="_blank" class="btn btn-outline-success">
+                                    <i class="bi bi-spotify"></i> Open in Spotify
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h5><i class="bi bi-info-circle"></i> No Playlists Found</h5>
+                        <p class="mb-0">Create your first playlist above, then add songs from the search page.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

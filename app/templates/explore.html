@@ -38,13 +38,13 @@
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ 'active' if current_filter == 'audio' else '' }}" 
                    href="{{ url_for('main.explore', filter='audio') }}">
-                    <i class="bi bi-music-note"></i> Audio
+                    <i class="bi bi-audio-note"></i> Worship
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ 'active' if current_filter == 'journal' else '' }}" 
                    href="{{ url_for('main.explore', filter='journal') }}">
-                    <i class="bi bi-journal-text"></i> Journal
+                    <i class="bi bi-journal-text"></i> Crafted Prayer
                 </a>
             </li>
             <li class="nav-item" role="presentation">
@@ -136,9 +136,6 @@
                     <a href="{{ url_for('logos.read_scripture') }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-book"></i> Read Scripture
                     </a>
-                    <a href="{{ url_for('soundlab.upload_page') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-upload"></i> Upload Audio
-                    </a>
                     <a href="{{ url_for('logos.create_journal_entry') }}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-plus-circle"></i> New Journal Entry
                     </a>
@@ -161,12 +158,12 @@
                     </a>
                     <a href="{{ url_for('main.explore', filter='audio') }}" 
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-music-note me-2 text-success"></i>Audio</span>
+                        <span><i class="bi bi-music-note me-2 text-success"></i>Worship</span>
                         <span class="badge bg-success rounded-pill">🎵</span>
                     </a>
                     <a href="{{ url_for('main.explore', filter='journal') }}" 
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-journal-text me-2 text-info"></i>Journal</span>
+                        <span><i class="bi bi-journal-text me-2 text-info"></i>Crafted Prayer</span>
                         <span class="badge bg-info rounded-pill">✍️</span>
                     </a>
                 </div>

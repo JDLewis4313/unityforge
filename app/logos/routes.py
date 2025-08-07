@@ -4,7 +4,6 @@ import requests
 from datetime import date
 from app.models import Scripture, Post, User, JournalEntry
 from app import db
-from app.logos.utils import create_scripture_post
 from typing import Optional
 
 # Import bp from the same module (no circular import)
@@ -17,7 +16,7 @@ from .utils import (
     get_full_chapter,
     get_specific_verse,
     search_scripture,
-    create_scripture_post
+    create_daily_scripture_posts
 )
 
 # Bible books lookup

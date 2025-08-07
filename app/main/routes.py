@@ -11,8 +11,7 @@ from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
 from app.models import User, Post, Message, Notification, Scripture, SoundEntry, JournalEntry
 from app.translate import translate
 from app.main import bp
-from app.logos.utils import create_scripture_post
-from app.soundlab.utils import create_audio_post
+from app.logos.utils import create_daily_scripture_posts
 from typing import Optional
 
 @bp.before_app_request

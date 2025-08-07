@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="card mb-4 warm-shadow">
+    <div class="card-header bg-warning text-dark">
+      <h4 class="mb-0"><i class="bi bi-heart"></i> {{ prayer.title }}</h4>
+      <small class="text-muted">Posted {{ moment(prayer.created_at).fromNow() }}</small>
+    </div>
+    <div class="card-body">
+      {% if prayer.description %}
+        <p class="text-muted mb-3">{{ prayer.description }}</p>
+      {% endif %}
+
+      {% if prayer.duration_seconds %}
+        <div class="mb-3">
+          <i class="bi bi-stopwatch"></i> Duration: {{ prayer.duration_seconds|round(1) }} seconds
+        </div>
+      {% endif %}
+
+      {% if prayer.filename.endswith('.mp3') or prayer.filename.endswith('.wav') %}
+        <audio controls class="w-100 mb-3">
+          <source src="{{ url_for('static', filename='uploads/' ~ prayer.filename) }}">
+          Your browser does not support audio playback.
+        </audio>
+      {% else %}
+        <pre class="bg-light p-3 rounded border">{{ prayer.description }}</pre>
+      {% endif %}
+
+      <ul class="list-unstyled mt-3 text-muted small">
+        <li><strong>Prayer Type:</strong> {{ prayer.prayer_type.title() }}</li>
+        {% if prayer.spiritual_focus %}<li><strong>Focus:</strong> {{ prayer.spiritual_focus.title() }}</li>{% endif %}
+        {% if prayer.scripture_reference %}<li><strong>Scripture:</strong> {{ prayer.scripture_reference }}</li>{% endif %}
+        {% if prayer.church_service_date %}<li><strong>Service Date:</strong> {{ prayer.church_service_date.strftime('%B %d, %Y') }}</li>{% endif %}
+        <li><strong>Shared:</strong> {{ 'Public' if prayer.is_public else 'Private' }}</li>
+      </ul>
+    </div>
+  </div>
+  <a href="{{ url_for('prayer.community') }}" class="btn btn-outline-primary">
+    <i class="bi bi-people-fill"></i> Back to Community Prayers
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Welcome Banner -->
+            <div class="card mb-4 scripture-banner text-white">
+                <div class="card-body p-4 text-center">
+                    <h2 class="mb-3">
+                        <i class="bi bi-heart-fill text-unity-gold"></i>
+                        Welcome to Your Prayer Studio
+                    </h2>
+                    <p class="mb-3 fs-5 opacity-90">
+                        "Be still and know that I am God" - Psalm 46:10
+                    </p>
+                    <p class="mb-0 opacity-75">
+                        A sacred space to share, craft, and experience prayer together
+                    </p>
+                </div>
+            </div>
+
+            <!-- Prayer Studio Tools -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="bi bi-tools"></i> Prayer Studio Tools
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 warm-shadow">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-mic-fill fs-1 text-unity-gold mb-3"></i>
+                                    <h4>Share a Prayer</h4>
+                                    <p class="text-muted">Upload and share audio prayers with the community</p>
+                                    <a href="{{ url_for('prayer.share') }}" class="btn btn-primary">
+                                        <i class="bi bi-mic"></i> Share Prayer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 warm-shadow">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-pen-fill fs-1 text-unity-gold mb-3"></i>
+                                    <h4>Craft a Prayer</h4>
+                                    <p class="text-muted">Write and save personal prayers and reflections</p>
+                                    <a href="{{ url_for('prayer.craft') }}" class="btn btn-primary">
+                                        <i class="bi bi-pen"></i> Craft Prayer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 warm-shadow">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-people-fill fs-1 text-unity-gold mb-3"></i>
+                                    <h4>Community Prayers</h4>
+                                    <p class="text-muted">Explore prayers shared by the community</p>
+                                    <a href="{{ url_for('prayer.community') }}" class="btn btn-primary">
+                                        <i class="bi bi-people"></i> Explore Prayers
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Prayers -->
+            {% if prayers %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-collection"></i> Your Recent Prayers
+                    </h4>
+                    <a href="{{ url_for('prayer.collection') }}" class="btn btn-outline-primary btn-sm">
+                        View All
+                    </a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for prayer in prayers %}
+                    <a href="{{ url_for('prayer.view', id=prayer.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div class="d-flex align-items-center">
+                                {% if prayer.prayer_type == 'personal' %}
+                                    <i class="bi bi-person-heart text-primary me-2"></i>
+                                {% elif prayer.prayer_type == 'pastoral' %}
+                                    <i class="bi bi-building text-success me-2"></i>
+                                {% elif prayer.prayer_type == 'worship' %}
+                                    <i class="bi bi-music-note-beamed text-warning me-2"></i>
+                                {% elif prayer.prayer_type == 'scripture' %}
+                                    <i class="bi bi-book-half text-info me-2"></i>
+                                {% else %}
+                                    <i class="bi bi-heart text-primary me-2"></i>
+                                {% endif %}
+                                <div>
+                                    <h5 class="mb-1">{{ prayer.title }}</h5>
+                                    <p class="mb-1 text-muted">
+                                        {{ prayer.prayer_type.title() }} Prayer
+                                        {% if prayer.spiritual_focus %}
+                                            • {{ prayer.spiritual_focus.title() }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                {% if prayer.duration_seconds %}
+                                <span class="badge bg-secondary me-1">{{ prayer.duration_seconds|round(1) }}s</span>
+                                {% endif %}
+                                <small class="text-muted d-block">{{ moment(prayer.created_at).fromNow() }}</small>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-heart display-1 text-muted mb-3"></i>
+                    <h4 class="text-muted">Your Prayer Journey Begins Here</h4>
+                    <p class="text-muted mb-4">Start by sharing your first prayer or crafting a personal reflection</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{{ url_for('prayer.share') }}" class="btn btn-primary">
+                            <i class="bi bi-mic"></i> Share a Prayer
+                        </a>
+                        <a href="{{ url_for('prayer.craft') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-pen"></i> Craft a Prayer
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
